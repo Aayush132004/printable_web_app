@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+:root {
+  --bg:       #F2F3F7;
+  --surface:  #FFFFFF;
+  --border:   #E8E8E8;
+  --green:    #0C831F;
+  --green-lt: #E8F5E9;
+  --green-md: #C8E6C9;
+  --text:     #1A1A1A;
+  --muted:    #666666;
+  --dim:      #999999;
+  --red:      #D32F2F;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Animations ──────────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fadeUp { animation: fadeUp 0.3s ease-out; }
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--border); border-radius: 4px; }
+
+/* ─── Selection ──────────────────────────────────────────────────────────── */
+::selection { background: var(--green); color: #fff; }
+
+/* ─── Focus ──────────────────────────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ─── Card base ──────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+/* ─── Green pill button ───────────────────────────────────────────────────── */
+.btn-green {
+  background: var(--green);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 12px;
+  transition: background 0.15s;
+}
+.btn-green:hover { background: #0a6e1a; }
+.btn-green:active { transform: scale(0.98); }
+
+/* ─── Option card (print settings) ─────────────────────────────────────────── */
+.opt-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  transition: all 0.15s;
+}
+.opt-card.active {
+  border-color: var(--green);
+  background: var(--green-lt);
+}
