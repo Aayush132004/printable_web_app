@@ -39,8 +39,8 @@ orderRouter.post("/", async (req: Request, res: Response) => {
 
     // Validate each file entry
     for (const f of files as FileInput[]) {
-      if (!f.fileName || !f.cloudinaryUrl || !f.pages || !f.copies) {
-        res.status(400).json({ error: "Each file must have fileName, cloudinaryUrl, pages, copies" });
+      if (!f.fileName || !f.fileUrl || !f.pages || !f.copies) {
+        res.status(400).json({ error: "Each file must have fileName, fileUrl, pages, copies" });
         return;
       }
     }
@@ -48,7 +48,7 @@ orderRouter.post("/", async (req: Request, res: Response) => {
     const result = await createOrder({
       files: (files as FileInput[]).map((f) => ({
         fileName:      f.fileName,
-        cloudinaryUrl: f.cloudinaryUrl,
+        fileUrl:       f.fileUrl,
         pages:         Number(f.pages),
         copies:        Number(f.copies),
         colour:        Boolean(f.colour),

@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import FileDropzone, { FileEntry, estimatePdfPages } from "@/components/FileDropzone";
 import PrintOptionCard from "@/components/PrintOptionCard";
 import PageRangeSelector from "@/components/PageRangeSelector";
-import { uploadToCloudinaryWithProgress } from "@/lib/upload";
+import { uploadToR2WithProgress } from "@/lib/upload";
 import { api } from "@/lib/api";
 import { calculatePrice, countPagesInRange } from "@/lib/price";
 import type { PrintConfig } from "@/lib/types";
@@ -64,20 +64,15 @@ export default function UploadPage() {
   const handleUploadFile = useCallback(async (id: string, file: File) => {
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, state: "uploading", progress: 0 } : e)));
     try {
-      const sig = await api.getUploadSignature();
+      const { uploadUrl, publicUrl } = await api.getUploadUrl(file.name, file.type);
 
-      // Use XHR with abort support
-      const url = await new Promise<string>((resolve, reject) => {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("api_key", sig.apiKey);
-        formData.append("timestamp", String(sig.timestamp));
-        formData.append("signature", sig.signature);
-        formData.append("folder", sig.folder);
-
+      // Use XHR with abort support via custom logic or just use the utility
+      // For abort support, we'll implement XHR here directly like before but for R2 (PUT)
+      await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhrRefs.current[id] = xhr;
-        xhr.open("POST", `https://api.cloudinary.com/v1_1/${sig.cloudName}/auto/upload`);
+        xhr.open("PUT", uploadUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
 
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
@@ -89,29 +84,19 @@ export default function UploadPage() {
         xhr.addEventListener("load", () => {
           delete xhrRefs.current[id];
           if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const data = JSON.parse(xhr.responseText);
-              resolve(data.secure_url as string);
-            } catch {
-              reject(new Error("Invalid response from Cloudinary"));
-            }
+            resolve();
           } else {
-            try {
-              const err = JSON.parse(xhr.responseText);
-              reject(new Error(err?.error?.message ?? "Cloudinary upload failed"));
-            } catch {
-              reject(new Error(`HTTP ${xhr.status}`));
-            }
+            reject(new Error(`R2 upload failed: ${xhr.status}`));
           }
         });
 
         xhr.addEventListener("error", () => { delete xhrRefs.current[id]; reject(new Error("Network error during upload")); });
         xhr.addEventListener("abort", () => { delete xhrRefs.current[id]; reject(new Error("Upload cancelled")); });
 
-        xhr.send(formData);
+        xhr.send(file);
       });
 
-      setEntries((prev) => prev.map((e) => e.id === id ? { ...e, state: "done", progress: 100, cloudinaryUrl: url } : e));
+      setEntries((prev) => prev.map((e) => e.id === id ? { ...e, state: "done", progress: 100, fileUrl: publicUrl } : e));
     } catch (err: any) {
       if (err?.message === "Upload cancelled") {
         // If cancelled, just remove the entry
@@ -148,8 +133,12 @@ export default function UploadPage() {
 
   const handleAdditionalFiles = async (rawFiles: File[]) => {
     const newEntries: FileEntry[] = [];
+    let sizeError = "";
     for (const f of rawFiles) {
-      if (f.size > 5120 * 1024 * 1024) continue; 
+      if (f.size > 500 * 1024 * 1024) {
+        sizeError = `"${f.name}" is too large (max 500 MB)`;
+        continue;
+      }
       const pages = await estimatePdfPages(f);
       newEntries.push({
         id: `${f.name}-${f.size}-${Date.now()}-${Math.random()}`,
@@ -159,6 +148,7 @@ export default function UploadPage() {
         pageCount: pages,
       });
     }
+    if (sizeError) setGlobalError(sizeError);
     if (!newEntries.length) return;
     const updated = [...entries, ...newEntries];
     handleFilesChange(updated);
@@ -193,7 +183,7 @@ export default function UploadPage() {
   const handleNext = () => {
     if (!canSubmit) return;
     const jobs = readyEntries.map((e) => ({
-      cloudinaryUrl: e.cloudinaryUrl!,
+      fileUrl: e.fileUrl!,
       fileName: e.file.name,
       config: configs[e.id] ?? DEFAULT_CONFIG,
     }));

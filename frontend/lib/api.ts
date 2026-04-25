@@ -32,20 +32,18 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export const api = {
-  /** Get signed Cloudinary upload URL */
-  getUploadSignature: () =>
+  /** Get signed Cloudflare R2 upload URL */
+  getUploadUrl: (fileName: string, contentType: string) =>
     get<{
-      signature: string;
-      timestamp: number;
-      cloudName: string;
-      apiKey: string;
-      folder: string;
-    }>("/upload-signature"),
+      uploadUrl: string;
+      publicUrl: string;
+      key: string;
+    }>(`/upload-url?fileName=${encodeURIComponent(fileName)}&contentType=${encodeURIComponent(contentType)}`),
 
   /** Create a new print order */
   createOrder: (payload: {
-    files: (Partial<PrintConfig> & {
-      cloudinaryUrl: string;
+    files: (PrintConfig & {
+      fileUrl: string;
       fileName: string;
       pages: number;
     })[];

@@ -5,8 +5,8 @@
   ],
   "crons": [
     {
-      "path": "/cleanup-cloudinary",
-      "schedule": "0 0 * * *"
+      "path": "/cleanup-files",
+      "schedule": "0 */4 * * *"
     }
   ]
 }

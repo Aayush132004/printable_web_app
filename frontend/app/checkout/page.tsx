@@ -19,7 +19,7 @@ declare global {
 }
 
 interface PrintJob {
-  cloudinaryUrl: string;
+  fileUrl: string;
   fileName: string;
   config: PrintConfig;
 }
@@ -42,8 +42,8 @@ export default function CheckoutPage() {
     if (stored) {
       setJobs(JSON.parse(stored));
     } else if (legacy) {
-      const { cloudinaryUrl, fileName, config } = JSON.parse(legacy);
-      setJobs([{ cloudinaryUrl, fileName, config }]);
+      const { fileUrl, fileName, config } = JSON.parse(legacy);
+      setJobs([{ fileUrl, fileName, config }]);
     } else {
       router.push("/upload");
     }
@@ -73,7 +73,7 @@ export default function CheckoutPage() {
       const payload = {
         files: jobs.map((job) => ({
           ...job.config,
-          cloudinaryUrl: job.cloudinaryUrl,
+          fileUrl: job.fileUrl,
           fileName: job.fileName,
           // Send the page count for pricing (backend uses this)
           pages: countPagesInRange(job.config.pageRange, job.config.totalPages),

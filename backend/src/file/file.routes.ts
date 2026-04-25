@@ -1,21 +1,29 @@
 // FILE: services/api/src/file/file.routes.ts
-// File-related routes — only one endpoint: GET /upload-signature
-// Returns signed Cloudinary credentials so frontend can upload directly
+// File-related routes — only one endpoint: GET /upload-url
+// Returns a presigned URL so frontend can upload directly to R2
 
-import { Router, Request, Response } from "express";
-import { getUploadSignature } from "./cloudinary.service";
+import { Router } from "express";
+import { getUploadUrl } from "./r2.service";
 
 export const fileRouter = Router();
 
-// ─── GET /upload-signature ────────────────────────────────────────────────────
-// Called by frontend before every upload.
-// Returns a short-lived signed URL valid for 1 hour.
-fileRouter.get("/upload-signature", (_req: Request, res: Response) => {
+/**
+ * GET /upload-url?fileName=test.pdf&contentType=application/pdf
+ * Returns a presigned URL to upload directly to R2.
+ */
+fileRouter.get("/upload-url", async (req, res) => {
   try {
-    const signature = getUploadSignature();
-    res.json(signature);
+    const { fileName, contentType } = req.query;
+
+    if (!fileName || !contentType) {
+      res.status(400).json({ error: "fileName and contentType are required" });
+      return;
+    }
+
+    const data = await getUploadUrl(fileName as string, contentType as string);
+    res.json(data);
   } catch (err) {
-    console.error("GET /upload-signature error:", err);
-    res.status(500).json({ error: "Failed to generate upload signature" });
+    console.error("GET /upload-url error:", err);
+    res.status(500).json({ error: "Failed to generate upload URL" });
   }
 });

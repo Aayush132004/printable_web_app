@@ -8,14 +8,14 @@ const ACCEPTED = [
   "image/jpeg",
   "image/png",
 ];
-const MAX_MB = 5120;
+const MAX_MB = 500;
 
 export interface FileEntry {
   id: string;
   file: File;
   state: "pending" | "uploading" | "done" | "error";
   progress: number;
-  cloudinaryUrl?: string;
+  fileUrl?: string;
   error?: string;
   pageCount: number;
 }

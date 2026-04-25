@@ -1,63 +1,43 @@
 // FILE: apps/web/lib/upload.ts
-// Uploads a file directly to Cloudinary using a signed URL from the backend.
-// The Express backend never touches the file — only signs the upload request.
-
-interface CloudinaryParams {
-  signature: string;
-  timestamp: number;
-  cloudName: string;
-  apiKey: string;
-  folder: string;
-}
+// Uploads a file directly to Cloudflare R2 using a presigned URL from the backend.
+// The Express backend never touches the file — only generates the upload URL.
 
 /**
- * Upload file directly to Cloudinary (no progress tracking).
- * Returns the secure_url of the uploaded file.
+ * Upload file directly to Cloudflare R2 (no progress tracking).
+ * Uses a PUT request to the presigned URL.
  */
-export async function uploadToCloudinary(
+export async function uploadToR2(
   file: File,
-  { signature, timestamp, cloudName, apiKey, folder }: CloudinaryParams
-): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("api_key", apiKey);
-  formData.append("timestamp", String(timestamp));
-  formData.append("signature", signature);
-  formData.append("folder", folder);
-
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
-    { method: "POST", body: formData }
-  );
+  uploadUrl: string
+): Promise<void> {
+  const res = await fetch(uploadUrl, {
+    method: "PUT",
+    body: file,
+    headers: {
+      "Content-Type": file.type,
+    },
+  });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message ?? "Cloudinary upload failed");
+    throw new Error(`R2 upload failed: ${res.statusText}`);
   }
-
-  const data = await res.json();
-  return data.secure_url as string;
 }
 
 /**
  * Upload file with real-time progress reporting via XMLHttpRequest.
  * onProgress receives a value 0-100.
  */
-export function uploadToCloudinaryWithProgress(
+export function uploadToR2WithProgress(
   file: File,
-  { signature, timestamp, cloudName, apiKey, folder }: CloudinaryParams,
+  uploadUrl: string,
   onProgress: (pct: number) => void
-): Promise<string> {
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("api_key", apiKey);
-    formData.append("timestamp", String(timestamp));
-    formData.append("signature", signature);
-    formData.append("folder", folder);
-
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
+    xhr.open("PUT", uploadUrl);
+
+    // Set the content type so R2 knows what it is
+    xhr.setRequestHeader("Content-Type", file.type);
 
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable) {
@@ -67,25 +47,15 @@ export function uploadToCloudinaryWithProgress(
 
     xhr.addEventListener("load", () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          resolve(data.secure_url as string);
-        } catch {
-          reject(new Error("Invalid response from Cloudinary"));
-        }
+        resolve();
       } else {
-        try {
-          const err = JSON.parse(xhr.responseText);
-          reject(new Error(err?.error?.message ?? "Cloudinary upload failed"));
-        } catch {
-          reject(new Error(`HTTP ${xhr.status}`));
-        }
+        reject(new Error(`R2 upload failed with status ${xhr.status}`));
       }
     });
 
     xhr.addEventListener("error", () => reject(new Error("Network error during upload")));
     xhr.addEventListener("abort", () => reject(new Error("Upload aborted")));
 
-    xhr.send(formData);
+    xhr.send(file);
   });
-}
+}

@@ -16,7 +16,7 @@ export type PaymentMode = "online" | "offline";
 // One file entry within a multi-file order
 export interface IOrderFile {
   fileName:      string;
-  cloudinaryUrl: string;
+  fileUrl: string;
   pages:         number;
   copies:        number;
   colour:        boolean;
@@ -42,7 +42,7 @@ export interface IOrder extends Document {
 const OrderFileSchema = new Schema<IOrderFile>(
   {
     fileName:      { type: String, required: true },
-    cloudinaryUrl: { type: String, required: true },
+    fileUrl: { type: String, required: true },
     pages:         { type: Number, required: true, min: 1 },
     copies:        { type: Number, required: true, min: 1, max: 50 },
     colour:        { type: Boolean, default: false },

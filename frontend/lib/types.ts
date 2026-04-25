@@ -23,7 +23,7 @@ export interface PrintConfig {
 
 export interface IOrderFile {
   fileName:      string;
-  cloudinaryUrl: string;
+  fileUrl:       string;
   pages:         number;
   copies:        number;
   colour:        boolean;

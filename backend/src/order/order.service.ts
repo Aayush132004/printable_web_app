@@ -5,7 +5,7 @@
 import { nanoid } from "nanoid";
 import Razorpay from "razorpay";
 import { Order, IOrder, IOrderFile, OrderStatus } from "./order.model";
-import { deleteFromCloudinary } from "../file/cloudinary.service";
+import { deleteFromR2 } from "../file/r2.service";
 
 // Pricing constants — keep in sync with frontend price.ts
 const BW_PER_PAGE    = 1;   // ₹1 per B&W page
@@ -33,7 +33,7 @@ function generateOrderId(): string {
 
 export interface FileInput {
   fileName:      string;
-  cloudinaryUrl: string;
+  fileUrl: string;
   pages:         number;
   copies:        number;
   colour:        boolean;
@@ -60,7 +60,7 @@ export async function createOrder(
   // Build per-file records with pre-calculated amounts
   const files: IOrderFile[] = input.files.map((f) => ({
     fileName:      f.fileName,
-    cloudinaryUrl: f.cloudinaryUrl,
+    fileUrl: f.fileUrl,
     pages:         f.pages,
     copies:        f.copies,
     colour:        f.colour,
@@ -139,9 +139,13 @@ export async function updateOrderStatus(
   if (status === "completed" || status === "cancelled") {
     console.log(`[OrderService] Order ${orderId} reached final state '${status}'. Cleaning up Cloudinary...`);
     for (const file of updated.files) {
-      if (file.cloudinaryUrl) {
-        deleteFromCloudinary(file.cloudinaryUrl).catch((err) => {
-          console.error(`[OrderService] Failed to delete file ${file.fileName} from Cloudinary:`, err);
+      if (file.fileUrl) {
+        // Extract R2 key from the full URL
+        const parts = file.fileUrl.split("/");
+        const key = parts[parts.length - 1];
+        
+        deleteFromR2(key).catch((err) => {
+          console.error(`[OrderService] Failed to delete file ${file.fileName} from R2:`, err);
         });
       }
     }

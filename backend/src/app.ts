@@ -8,7 +8,7 @@ import { fileRouter } from "./file/file.routes";
 import { paymentRouter } from "./payment/payment.routes";
 
 import { connectDB } from "./db";
-import { cleanupAllCloudinaryFiles } from "./file/cloudinary.service";
+import { cleanupR2Files } from "./file/r2.service";
 
 const app = express();
 
@@ -43,11 +43,10 @@ app.use("/", fileRouter);       // GET /upload-signature
 app.use("/payment", paymentRouter); // POST /payment/webhook
 
 // Cleanup route for Vercel Cron
-app.get("/cleanup-cloudinary", async (req, res) => {
-  // Simple security check (could be improved with a secret header)
+app.get("/cleanup-files", async (req, res) => {
   try {
-    await cleanupAllCloudinaryFiles();
-    res.json({ success: true, message: "Cleanup completed" });
+    await cleanupR2Files();
+    res.json({ success: true, message: "R2 Cleanup completed" });
   } catch (err) {
     res.status(500).json({ success: false, error: "Cleanup failed" });
   }
