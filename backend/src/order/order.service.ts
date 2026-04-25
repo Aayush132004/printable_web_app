@@ -137,7 +137,7 @@ export async function updateOrderStatus(
 
   // If completed or cancelled, delete associated files from Cloudinary to protect privacy/storage
   if (status === "completed" || status === "cancelled") {
-    console.log(`[OrderService] Order ${orderId} reached final state '${status}'. Cleaning up Cloudinary...`);
+    console.log(`[OrderService] Order ${orderId} reached final state '${status}'. Cleaning up Cloudflare R2...`);
     for (const file of updated.files) {
       if (file.fileUrl) {
         // Extract R2 key from the full URL
